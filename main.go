@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -28,7 +29,8 @@ func main() {
 
 	// register routes
 
-	log.Println("Server is running on port 8080")
+	port := config.Config.Port
+	log.Printf("Server is running on port %s", port)
 	log.Println("Database initialized")
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(fmt.Sprintf(":%s", port), router)
 }
