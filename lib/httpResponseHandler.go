@@ -9,6 +9,7 @@ import (
 )
 
 func HandleResponse(w http.ResponseWriter, status int, message string, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(config.Response{
 		Status:  status,
 		Message: message,

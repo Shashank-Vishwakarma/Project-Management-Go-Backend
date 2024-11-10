@@ -60,7 +60,7 @@ func UserRegistrationHandler(w http.ResponseWriter, r * http.Request) {
 		return
 	}
 
-	responseData := config.RegisterRequestBody{
+	responseData := config.UserData{
 		Name: body.Name,
 		Email: body.Email,
 		Role: body.Role,
@@ -68,6 +68,70 @@ func UserRegistrationHandler(w http.ResponseWriter, r * http.Request) {
 	lib.HandleResponse(w, http.StatusCreated, "User created successfully", responseData)
 }
 
-func UserLoginHandler(w http.ResponseWriter, r * http.Request) {}
+func UserLoginHandler(w http.ResponseWriter, r * http.Request) {
+	var body config.LoginRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
 
-func UserLogoutHandler(w http.ResponseWriter, r * http.Request) {}
+	if body.Email == "" || body.Password == "" || body.Role == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "All fields are required", nil)
+		return
+	}
+
+	// check if user exists
+	user := &models.User{}
+	result := database.DBClient.Where("email = ?", body.Email).First(&user)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "User not found", nil)
+		return
+	}
+
+	// check if password is correct
+	if isPasswordMatch := utils.ComparePasswordHash(body.Password, user.Password); !isPasswordMatch {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Invalid password", nil)
+		return
+	}
+
+	// generate jwt token
+	token, err := lib.GenerateJWT(user.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	// set cookie
+	cookie := http.Cookie{
+		Name: "token",
+		Value: token,
+		MaxAge: 60 * 60 * 24,
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+	}
+	http.SetCookie(w, &cookie)
+
+	responseData := config.UserData{
+		Name: user.Name,
+		Email: user.Email,
+		Role: user.Role,
+		Token: token,
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Login successful...", responseData)
+}
+
+func UserLogoutHandler(w http.ResponseWriter, r * http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name: "token",
+		Value: "",
+		MaxAge: 0,
+	})
+
+	lib.HandleResponse(w, http.StatusOK, "Logout successful...", nil)
+}
