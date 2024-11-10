@@ -9,7 +9,11 @@ import (
 )
 
 func AuthRoutes(router *mux.Router) {
-	router.HandleFunc("/login", handlers.UserLoginHandler).Methods(http.MethodPost)
 	router.HandleFunc("/register", handlers.UserRegistrationHandler).Methods(http.MethodPost)
-	router.HandleFunc("/logout", middlewares.VerifyToken(handlers.UserLogoutHandler)).Methods(http.MethodPost)
+	router.HandleFunc("/login", handlers.UserLoginHandler).Methods(http.MethodPost)
+
+	router.HandleFunc("/logout", middlewares.ChainMiddlewares(
+		http.HandlerFunc(handlers.UserLogoutHandler),
+		middlewares.VerifyToken,
+	).ServeHTTP).Methods(http.MethodPost)
 }

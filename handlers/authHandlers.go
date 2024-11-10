@@ -98,8 +98,14 @@ func UserLoginHandler(w http.ResponseWriter, r * http.Request) {
 		return
 	}
 
+	if body.Role != user.Role {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Invalid role", nil)
+		return
+	}
+
 	// generate jwt token
-	token, err := lib.GenerateJWT(user.ID)
+	token, err := lib.GenerateJWT(user.ID, user.Name, user.Email, user.Role)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		lib.HandleResponse(w, http.StatusInternalServerError, err.Error(), nil)

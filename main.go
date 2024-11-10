@@ -37,9 +37,6 @@ func main() {
 
 	// register middlewares
 	router.Use(middlewares.RequestLogger)
-	authRouter.Use(middlewares.VerifyRole)
-	// projectRouter.Use(http.Handler(middlewares.VerifyToken), middlewares.VerifyRole)
-	// taskRouter.Use(middlewares.VerifyToken, middlewares.VerifyRole)
 
 	// register routes
 	routes.AuthRoutes(authRouter)
