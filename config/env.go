@@ -24,6 +24,7 @@ func GetConfig() error {
 	Config = &types.Config{
 		Port:           os.Getenv("PORT"),
 		JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
+		DB_NAME:        os.Getenv("DB_NAME"),
 		DB_USERNAME:    os.Getenv("DB_USERNAME"),
 		DB_PASSWORD:    os.Getenv("DB_PASSWORD"),
 		DB_PORT:        os.Getenv("DB_PORT"),
@@ -34,6 +35,7 @@ func GetConfig() error {
 	cfg := map[string]interface{}{
 		"PORT":           Config.Port,
 		"JWT_SECRET_KEY": Config.JWT_SECRET_KEY,
+		"DB_NAME": Config.DB_NAME,
 		"DB_USERNAME":        Config.DB_USERNAME,
 		"DB_PASSWORD":        Config.DB_PASSWORD,
 		"DB_PORT":            Config.DB_PORT,
