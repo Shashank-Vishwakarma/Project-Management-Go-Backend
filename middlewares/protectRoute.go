@@ -6,19 +6,14 @@ import (
 
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/constants"
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/lib"
-	"github.com/golang-jwt/jwt/v5"
 )
-
-type contextKey string
-
-const userContextKey contextKey = "user"
 
 func VerifyToken(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("token")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			lib.HandleResponse(w, http.StatusInternalServerError, "Error reading cookie", nil)
+			lib.HandleResponse(w, http.StatusInternalServerError, err.Error(), nil)
 			return
 		}
 		if token.Value == "" {
@@ -34,27 +29,7 @@ func VerifyToken(h http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userContextKey, claims)
-		h.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func VerifyRole(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := r.Context().Value(userContextKey).(jwt.MapClaims)
-		if !ok {
-			w.WriteHeader(http.StatusInternalServerError)
-			lib.HandleResponse(w, http.StatusInternalServerError, "Failed to retrieve user from context", nil)
-			return
-		}
-
-		if claims["role"] != constants.USER_ADMIN_ROLE {
-			w.WriteHeader(http.StatusForbidden)
-			lib.HandleResponse(w, http.StatusForbidden, "Forbidden", nil)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), userContextKey, claims)
+		ctx := context.WithValue(r.Context(), constants.USER_CONTEXT_KEY, claims)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

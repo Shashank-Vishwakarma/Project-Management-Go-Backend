@@ -1,5 +1,7 @@
 package constants
 
+type contextKey string
+
 const (
 	USER_ADMIN_ROLE = "admin"
 
@@ -8,4 +10,6 @@ const (
 	USERS_BASE_ENDPOINT    = BASE_ENDPOINT + "/users"
 	PROJECTS_BASE_ENDPOINT = BASE_ENDPOINT + "/projects"
 	TASKS_BASE_ENDPOINT    = BASE_ENDPOINT + "/projects/{project_id}/tasks"
+
+	USER_CONTEXT_KEY contextKey = "user"
 )

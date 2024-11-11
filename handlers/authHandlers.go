@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/config"
+	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/constants"
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/database"
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/lib"
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/models"
@@ -119,6 +120,7 @@ func UserLoginHandler(w http.ResponseWriter, r * http.Request) {
 		MaxAge: 60 * 60 * 24,
 		HttpOnly: true,
 		SameSite: http.SameSiteNoneMode,
+		Path: constants.BASE_ENDPOINT,
 	}
 	http.SetCookie(w, &cookie)
 
@@ -133,11 +135,15 @@ func UserLoginHandler(w http.ResponseWriter, r * http.Request) {
 }
 
 func UserLogoutHandler(w http.ResponseWriter, r * http.Request) {
-	http.SetCookie(w, &http.Cookie{
+	cookie := http.Cookie{
 		Name: "token",
 		Value: "",
 		MaxAge: 0,
-	})
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+		Path: constants.BASE_ENDPOINT,
+	}
+	http.SetCookie(w, &cookie)
 
 	lib.HandleResponse(w, http.StatusOK, "Logout successful...", nil)
 }
