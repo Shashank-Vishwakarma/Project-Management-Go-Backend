@@ -4,12 +4,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Task struct {
-	gorm.Model
-
 	ID uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 
 	Title string `json:"title"`

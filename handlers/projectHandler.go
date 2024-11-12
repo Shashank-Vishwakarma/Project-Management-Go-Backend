@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/config"
@@ -88,7 +89,33 @@ func CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusCreated, "Project created successfully", jsonResponse)
 }
 
-func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {}
+func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	var projects []models.Project
+	result := database.DBClient.Model(&models.Project{}).Preload("Owner").Find(&projects)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, result.Error.Error(), nil)
+		return
+	}
+
+	var response []models.Project
+	for _, project := range projects {
+		if project.OwnerID == userID || slices.Contains(project.MemeberIDs, userID) {
+			response = append(response, project)
+		}
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "", response)
+}
 
 func GetProjectDetails(w http.ResponseWriter, r *http.Request) {}
 
