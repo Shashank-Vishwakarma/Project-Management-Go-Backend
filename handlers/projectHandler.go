@@ -177,3 +177,5 @@ func AddMemberToProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveMemberFromProject(w http.ResponseWriter, r *http.Request) {}
+
+func GetAllMembersOnAProject(w http.ResponseWriter, r *http.Request) {}
