@@ -178,4 +178,20 @@ func AddMemberToProject(w http.ResponseWriter, r *http.Request) {
 
 func RemoveMemberFromProject(w http.ResponseWriter, r *http.Request) {}
 
-func GetAllMembersOnAProject(w http.ResponseWriter, r *http.Request) {}
+func GetAllMembersOnAProject(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	err = database.DBClient.Model(&models.Project{}).Preload("Members").First(&project, "id = ?", projectID).Error
+	if err != nil {
+		log.Fatalf("Error fetching project with members: %v", err)
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "", project.Members)
+}
