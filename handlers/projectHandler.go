@@ -176,7 +176,49 @@ func AddMemberToProject(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusCreated, "Team member added successfully...", user)
 }
 
-func RemoveMemberFromProject(w http.ResponseWriter, r *http.Request) {}
+func RemoveMemberFromProject(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	// get the user id
+	userID, err := uuid.Parse(vars["user_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the user id", nil)
+		return
+	}
+
+	var user models.User
+	result = database.DBClient.Model(&models.User{}).Where("id = ?", userID).First(&user)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "User not found", nil)
+		return
+	}
+
+	err = database.DBClient.Model(&project).Association("Members").Delete(&user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Team member removed successfully...", user)
+}
 
 func GetAllMembersOnAProject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
