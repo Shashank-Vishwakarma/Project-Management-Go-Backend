@@ -14,6 +14,7 @@ import (
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 func CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,22 +72,7 @@ func CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonResponse := struct{
-		ID uuid.UUID `json:"id"`
-		Name string `json:"name"`
-		Description string `json:"description"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		OwnerID uuid.UUID `json:"owner_id"`
-	}{
-		ID: project.ID,
-		Name: project.Name,
-		Description: project.Description,
-		CreatedAt: project.CreatedAt,
-		UpdatedAt: project.UpdatedAt,
-		OwnerID: project.OwnerID,
-	}
-	lib.HandleResponse(w, http.StatusCreated, "Project created successfully", jsonResponse)
+	lib.HandleResponse(w, http.StatusCreated, "Project created successfully", project)
 }
 
 func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +103,25 @@ func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusOK, "", response)
 }
 
-func GetProjectDetails(w http.ResponseWriter, r *http.Request) {}
+func GetProjectDetails(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).Preload("Owner").Find(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Project details obtained...", project)
+}
 
 func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {}
 
