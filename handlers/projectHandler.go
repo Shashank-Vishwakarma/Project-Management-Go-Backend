@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/Shashank-Vishwakarma/Project-Management-Go-Backend/config"
@@ -86,7 +85,7 @@ func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var projects []models.Project
-	result := database.DBClient.Model(&models.Project{}).Preload("Owner").Find(&projects)
+	result := database.DBClient.Model(&models.Project{}).Preload("Members").Preload("Owner").Find(&projects)
 	if result.Error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		lib.HandleResponse(w, http.StatusInternalServerError, result.Error.Error(), nil)
@@ -95,8 +94,15 @@ func GetAllProjectsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var response []models.Project
 	for _, project := range projects {
-		if project.OwnerID == userID || slices.Contains(project.MemeberIDs, userID) {
+		if project.OwnerID == userID {
 			response = append(response, project)
+		}
+
+		for _, user := range project.Members {
+			if user.ID == userID {
+				response = append(response, project)
+				break
+			}
 		}
 	}
 
@@ -127,6 +133,47 @@ func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {}
 
 func DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {}
 
-func AddMemberToProject(w http.ResponseWriter, r *http.Request) {}
+func AddMemberToProject(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	// get the user id from body
+	body := struct{ID string `json:"user_id"`}{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+
+	var user models.User
+	result = database.DBClient.Model(&models.User{}).Where("id = ?", body.ID).First(&user)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "User not found", nil)
+		return
+	}
+
+	err = database.DBClient.Model(&project).Association("Members").Append(&user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusCreated, "Team member added successfully...", user)
+}
 
 func RemoveMemberFromProject(w http.ResponseWriter, r *http.Request) {}

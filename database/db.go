@@ -13,7 +13,7 @@ import (
 var DBClient *gorm.DB
 
 func createTables() {
-	err := DBClient.AutoMigrate(&models.User{}, &models.Project{}, &models.Task{})
+	err := DBClient.AutoMigrate(&models.ProjectMember{}, &models.User{}, &models.Project{}, &models.Task{})
 	if err != nil {
 		log.Fatalf("Error creating tables: %s", err)
 	}
