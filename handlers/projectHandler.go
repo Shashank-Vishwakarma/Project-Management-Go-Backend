@@ -192,8 +192,8 @@ func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {
 		OwnerID:     body.OwnerID,
 	})
 	if result.Error != nil {
-		w.WriteHeader(http.StatusNotFound)
-		lib.HandleResponse(w, http.StatusNotFound, "Error updating the project", nil)
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Error updating the project", nil)
 		return
 	}
 
