@@ -129,7 +129,76 @@ func GetProjectDetails(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusOK, "Project details obtained...", project)
 }
 
-func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {}
+func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	if userID != project.OwnerID {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to perform this operation", nil)
+		return
+	}
+
+	// get the body
+	var body config.ProjectRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+	if body.Name == "" && body.Description == "" && body.OwnerID == uuid.Nil {
+		w.WriteHeader(http.StatusNotModified)
+		lib.HandleResponse(w, http.StatusNotModified, "No changes found", nil)
+		return
+	}
+
+	if body.Name == "" {
+		body.Name = project.Name
+	}
+
+	if body.Description == "" {
+		body.Description = project.Description
+	}
+
+	if body.OwnerID == uuid.Nil {
+		body.OwnerID = project.OwnerID
+	}
+
+	result = database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).Updates(&models.Project{
+		Name:        body.Name,
+		Description: body.Description,
+		OwnerID:     body.OwnerID,
+	})
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Error updating the project", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Project details updated successfully...", nil)
+}
 
 func DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {}
 
