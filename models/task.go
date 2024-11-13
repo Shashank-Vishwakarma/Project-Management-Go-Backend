@@ -16,6 +16,9 @@ type Task struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
+	CreatedByID uuid.UUID `json:"created_by"`
+	CreatedByUser User `json:"created_by_user" gorm:"foreignKey:CreatedByID"`
+
 	AssignedToID uuid.UUID `json:"assigned_to_id"`
 	AssignedTo User `json:"assigned_to" gorm:"foreignKey:AssignedToID"`
 
