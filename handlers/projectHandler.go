@@ -200,7 +200,47 @@ func UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusOK, "Project details updated successfully...", nil)
 }
 
-func DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {}
+func DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	if userID != project.OwnerID {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to delete this project", nil)
+		return
+	}
+
+	result = database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).Delete(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Error deleting the project", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Project deleted successfully...", nil)
+}
 
 func AddMemberToProject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
