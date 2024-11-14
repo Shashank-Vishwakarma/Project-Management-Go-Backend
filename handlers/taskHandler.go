@@ -197,7 +197,107 @@ func GetTaskDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusOK, "Task details fetched successfully", task)
 }
 
-func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {}
+func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+	taskID, err := uuid.Parse(vars["task_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var body config.TaskRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+
+	if body.Title == "" && body.Description == "" && body.Status == "" && body.AssignedToID == uuid.Nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "No changes found", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	var task models.Task
+	result = database.DBClient.Model(&models.Task{}).Where("id = ?", taskID).First(&task)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Task not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	isPartOfTheProject := false
+	if userID == project.OwnerID {
+		isPartOfTheProject = true
+	}
+	for _, member := range project.Members {
+		if member.ID == userID {
+			isPartOfTheProject = true
+			break
+		}
+	}
+
+	if !isPartOfTheProject {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to update the task", nil)
+		return
+	}
+
+	if body.Title == "" {
+		body.Title = task.Title
+	}
+
+	if body.Description == "" {
+		body.Description = task.Description
+	}
+
+	if body.Status == "" {
+		body.Status = task.Status
+	}
+
+	if body.AssignedToID == uuid.Nil {
+		body.AssignedToID = task.AssignedToID
+	}
+
+	result = database.DBClient.Model(&models.Task{}).Where("id = ?", taskID).Updates(&models.Task{
+		Title:        body.Title,
+		Description:  body.Description,
+		Status:       body.Status,
+		// DueDate:      body.DueDate,
+		AssignedToID: body.AssignedToID,
+	})
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Error updating the task", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Task updated successfully", nil)
+}
 
 func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {}
 
