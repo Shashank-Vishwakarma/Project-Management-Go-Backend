@@ -25,7 +25,7 @@ The API enables users to manage projects, assign tasks, add team members, and tr
    - Assign tasks to team members and track status (To Do, In Progress, Done).
 
 4. **Advanced Routing and Middleware**  
-   - Custom middleware for JWT authentication, logging, role validation, and error handling.
+   - Custom middleware for JWT authentication and logging.
 
 5. **Data Persistence**  
    - PostgreSQL as the database to manage users, projects, tasks, and team members.
@@ -47,9 +47,3 @@ The API enables users to manage projects, assign tasks, add team members, and tr
    DB_SSL_MODE=....
 ```
 
----
-
-## Optional Advanced Features
-
-- **Task Status Tracking**: Track task statuses and history.
-- **Project Deadlines**: Set project deadlines with overdue task notifications using cron jobs.
