@@ -14,7 +14,6 @@ type Project struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	// MemeberIDs []uuid.UUID `json:"member_ids" gorm:"type:json"`
 	Members []User    `json:"members" gorm:"many2many:project_members;"`
 
 	OwnerID uuid.UUID `json:"owner_id"`

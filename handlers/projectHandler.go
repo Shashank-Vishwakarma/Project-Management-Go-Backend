@@ -32,7 +32,6 @@ func CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// check if the logged in user is creating the project
 	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
-
 	ownerID, err := uuid.Parse(claims["id"].(string))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
