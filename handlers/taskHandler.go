@@ -83,9 +83,119 @@ func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusCreated, "Task created successfully", nil)
 }
 
-func GetAllTasksHandler(w http.ResponseWriter, r *http.Request) {}
+func GetAllTasksHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
 
-func GetTaskDetailsHandler(w http.ResponseWriter, r *http.Request) {}
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	isPartOfTheProject := false
+	if userID == project.OwnerID {
+		isPartOfTheProject = true
+	}
+	for _, member := range project.Members {
+		if member.ID == userID {
+			isPartOfTheProject = true
+			break
+		}
+	}
+
+	if !isPartOfTheProject {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to see the tasks of this project", nil)
+		return
+	}
+
+	var tasks []models.Task
+	result = database.DBClient.Model(&models.Task{}).Where("project_id = ?", projectID).Preload("CreatedByUser").Preload("AssignedTo").Preload("Project").Find(&tasks)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Error getting tasks", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Tasks fetched successfully", tasks)
+}
+
+func GetTaskDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+	taskID, err := uuid.Parse(vars["task_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	var task models.Task
+	result = database.DBClient.Model(&models.Task{}).Where("id = ?", taskID).Preload("CreatedByUser").Preload("AssignedTo").Preload("Project").First(&task)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Task not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	isPartOfTheProject := false
+	if userID == project.OwnerID {
+		isPartOfTheProject = true
+	}
+	for _, member := range project.Members {
+		if member.ID == userID {
+			isPartOfTheProject = true
+			break
+		}
+	}
+
+	if !isPartOfTheProject {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to see the task details", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Task details fetched successfully", task)
+}
 
 func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {}
 
