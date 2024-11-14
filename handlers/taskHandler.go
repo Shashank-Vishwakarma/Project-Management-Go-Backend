@@ -299,6 +299,63 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	lib.HandleResponse(w, http.StatusOK, "Task updated successfully", nil)
 }
 
-func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {}
+func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID, err := uuid.Parse(vars["project_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+	taskID, err := uuid.Parse(vars["task_id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		lib.HandleResponse(w, http.StatusBadRequest, "Could not parse the project id", nil)
+		return
+	}
+
+	var project models.Project
+	result := database.DBClient.Model(&models.Project{}).Where("id = ?", projectID).First(&project)
+	if result.Error != nil {
+		w.WriteHeader(http.StatusNotFound)
+		lib.HandleResponse(w, http.StatusNotFound, "Project not found", nil)
+		return
+	}
+
+	claims := r.Context().Value(constants.USER_CONTEXT_KEY).(jwt.MapClaims)
+	userID, err := uuid.Parse(claims["id"].(string))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		lib.HandleResponse(w, http.StatusInternalServerError, "Something went wrong...", nil)
+		return
+	}
+
+	isPartOfTheProject := false
+	if userID == project.OwnerID {
+		isPartOfTheProject = true
+	}
+	for _, member := range project.Members {
+		if member.ID == userID {
+			isPartOfTheProject = true
+			break
+		}
+	}
+
+	if !isPartOfTheProject {
+		w.WriteHeader(http.StatusUnauthorized)
+		lib.HandleResponse(w, http.StatusUnauthorized, "Not authorized to delete the task", nil)
+		return
+	}
+
+	result = database.DBClient.Model(&models.Task{}).Where("id = ?", taskID).Delete(&models.Task{})
+	if result.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		lib.HandleResponse(w, http.StatusInternalServerError, "Error deleting the task or task does not exist", nil)
+		return
+	}
+
+	lib.HandleResponse(w, http.StatusOK, "Task deleted successfully", nil)
+}
 
 func ChangeTaskAssigneeHandler(w http.ResponseWriter, r *http.Request) {}
