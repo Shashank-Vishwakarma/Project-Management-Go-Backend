@@ -357,5 +357,3 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	lib.HandleResponse(w, http.StatusOK, "Task deleted successfully", nil)
 }
-
-func ChangeTaskAssigneeHandler(w http.ResponseWriter, r *http.Request) {}

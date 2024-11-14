@@ -13,5 +13,4 @@ func TaskRoutes(router *mux.Router) {
 	router.HandleFunc("/{task_id}", handlers.GetTaskDetailsHandler).Methods(http.MethodGet)
 	router.HandleFunc("/{task_id}", handlers.UpdateTaskHandler).Methods(http.MethodPut)
 	router.HandleFunc("/{task_id}", handlers.DeleteTaskHandler).Methods(http.MethodDelete)
-	router.HandleFunc("/{task_id}", handlers.ChangeTaskAssigneeHandler).Methods(http.MethodPut)
 }
