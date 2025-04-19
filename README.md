@@ -3,6 +3,8 @@
 This project is a **Project Management & Collaboration API** built in Go.
 The API enables users to manage projects, assign tasks, add team members, and track progress with features for user authentication, authorization, and role-based permissions.
 
+![image](https://github.com/user-attachments/assets/ef38afae-d5a2-4cf4-8b6f-745818443891)
+
 ## Tech
 1. Golang
 2. Gorilla Mux for handling requests
